@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Image } from 'react-native';
 
 import api from '../../services/api';
@@ -23,7 +23,7 @@ interface Food {
   name: string;
   description: string;
   price: number;
-  formattedValue: number;
+  formattedValue: string;
   thumbnail_url: string;
 }
 
@@ -33,10 +33,22 @@ const Orders: React.FC = () => {
   useEffect(() => {
     async function loadOrders(): Promise<void> {
       // Load orders from API
+      const response = await api.get('orders');
+
+      setOrders(response.data);
     }
 
     loadOrders();
   }, []);
+
+  const formattedOrders: Food[] = useMemo(() => {
+    return orders.map(order => {
+      return {
+        ...order,
+        formattedValue: formatValue(order.price),
+      };
+    });
+  }, [orders]);
 
   return (
     <Container>
@@ -46,7 +58,7 @@ const Orders: React.FC = () => {
 
       <FoodsContainer>
         <FoodList
-          data={orders}
+          data={formattedOrders}
           keyExtractor={item => String(item.id)}
           renderItem={({ item }) => (
             <Food key={item.id} activeOpacity={0.6}>
@@ -59,7 +71,7 @@ const Orders: React.FC = () => {
               <FoodContent>
                 <FoodTitle>{item.name}</FoodTitle>
                 <FoodDescription>{item.description}</FoodDescription>
-                <FoodPricing>{item.formattedPrice}</FoodPricing>
+                <FoodPricing>{item.formattedValue}</FoodPricing>
               </FoodContent>
             </Food>
           )}

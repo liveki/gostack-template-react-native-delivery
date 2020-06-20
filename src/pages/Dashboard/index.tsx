@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Image, ScrollView } from 'react-native';
 
 import Icon from 'react-native-vector-icons/Feather';
@@ -35,6 +35,7 @@ interface Food {
   price: number;
   thumbnail_url: string;
   formattedPrice: string;
+  category: number;
 }
 
 interface Category {
@@ -55,27 +56,45 @@ const Dashboard: React.FC = () => {
 
   async function handleNavigate(id: number): Promise<void> {
     // Navigate do ProductDetails page
+    navigation.navigate('FoodDetails', { id });
   }
 
   useEffect(() => {
     async function loadFoods(): Promise<void> {
-      // Load Foods from API
-    }
+      const response = await api.get('foods', {
+        params: {
+          category_like: selectedCategory,
+          name_like: searchValue,
+        },
+      });
 
+      setFoods(response.data);
+    }
     loadFoods();
   }, [selectedCategory, searchValue]);
 
   useEffect(() => {
-    async function loadCategories(): Promise<void> {
-      // Load categories from API
+    function loadCategories(): void {
+      api.get('categories').then(response => {
+        setCategories(response.data);
+      });
     }
 
     loadCategories();
   }, []);
 
   function handleSelectCategory(id: number): void {
-    // Select / deselect category
+    setSelectedCategory(selectedCategory === id ? undefined : id);
   }
+
+  const formattedFoods = useMemo(() => {
+    return foods.map(food => {
+      return {
+        ...food,
+        formattedPrice: formatValue(food.price),
+      };
+    });
+  }, [foods]);
 
   return (
     <Container>
@@ -105,7 +124,7 @@ const Dashboard: React.FC = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
           >
-            {categories.map(category => (
+            {categories.map((category: Category) => (
               <CategoryItem
                 key={category.id}
                 isSelected={category.id === selectedCategory}
@@ -125,7 +144,7 @@ const Dashboard: React.FC = () => {
         <FoodsContainer>
           <Title>Pratos</Title>
           <FoodList>
-            {foods.map(food => (
+            {formattedFoods.map(food => (
               <Food
                 key={food.id}
                 onPress={() => handleNavigate(food.id)}
